@@ -1,0 +1,4 @@
+wordle-nvim
+dist/
+coverage.out
+*.exe

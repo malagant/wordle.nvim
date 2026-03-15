@@ -58,17 +58,10 @@ func NewModel(cfg Config) Model {
 
 	stats := game.LoadStats(string(cfg.Language))
 
+	// If daily already played, auto-switch to random
 	if !cfg.Random && stats.HasPlayedToday() {
-		return Model{
-			game:    game.New(target),
-			words:   wl,
-			input:   make([]rune, 0, 5),
-			message: "Already played today! Use --random for a new game.",
-			stats:   stats,
-			config:  cfg,
-			width:   80,
-			height:  40,
-		}
+		cfg.Random = true
+		target = wl.RandomWord()
 	}
 
 	return Model{

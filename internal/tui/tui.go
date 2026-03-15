@@ -17,97 +17,11 @@ var (
 	colorGreen  = lipgloss.Color("#538d4e")
 	colorYellow = lipgloss.Color("#b59f3b")
 	colorGray   = lipgloss.Color("#3a3a3c")
-	colorDark   = lipgloss.Color("#121213")
+	colorDark   = lipgloss.Color("#272729")
 	colorWhite  = lipgloss.Color("#d7dadc")
 	colorDim    = lipgloss.Color("#565758")
 	colorAccent = lipgloss.Color("#818384")
 	colorBg     = lipgloss.Color("#121213")
-)
-
-// ── Styles ─────────────────────────────────────────────────────────────
-
-func makeTileStyle(bg lipgloss.Color) lipgloss.Style {
-	return lipgloss.NewStyle().
-		Bold(true).
-		Foreground(colorWhite).
-		Background(bg).
-		Padding(0, 1).
-		Align(lipgloss.Center)
-}
-
-func makeEmptyTile() lipgloss.Style {
-	return lipgloss.NewStyle().
-		Foreground(colorDim).
-		Padding(0, 1).
-		Align(lipgloss.Center).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(colorDim)
-}
-
-func makeInputTile() lipgloss.Style {
-	return lipgloss.NewStyle().
-		Bold(true).
-		Foreground(colorWhite).
-		Padding(0, 1).
-		Align(lipgloss.Center).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(colorAccent)
-}
-
-func makeKeyStyle(bg lipgloss.Color) lipgloss.Style {
-	return lipgloss.NewStyle().
-		Bold(true).
-		Foreground(colorWhite).
-		Background(bg).
-		Padding(0, 1).
-		Align(lipgloss.Center)
-}
-
-var (
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorWhite).
-			Align(lipgloss.Center)
-
-	subtitleStyle = lipgloss.NewStyle().
-			Foreground(colorAccent).
-			Align(lipgloss.Center)
-
-	messageStyle = lipgloss.NewStyle().
-			Foreground(colorYellow).
-			Bold(true).
-			Align(lipgloss.Center)
-
-	winMsgStyle = lipgloss.NewStyle().
-			Foreground(colorGreen).
-			Bold(true).
-			Align(lipgloss.Center)
-
-	loseMsgStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#e74c3c")).
-			Bold(true).
-			Align(lipgloss.Center)
-
-	statsBoxStyle = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(colorDim).
-			Padding(1, 2).
-			Align(lipgloss.Center)
-
-	statNumStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorWhite).
-			Width(10).
-			Align(lipgloss.Center)
-
-	statLblStyle = lipgloss.NewStyle().
-			Foreground(colorAccent).
-			Width(10).
-			Align(lipgloss.Center)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(colorDim).
-			Align(lipgloss.Center)
 )
 
 // ── Config & Model ─────────────────────────────────────────────────────
@@ -149,7 +63,7 @@ func NewModel(cfg Config) Model {
 			game:    game.New(target),
 			words:   wl,
 			input:   make([]rune, 0, 5),
-			message: "Already played today's Wordle! Use --random for a new game.",
+			message: "Already played today! Use --random for a new game.",
 			stats:   stats,
 			config:  cfg,
 			width:   80,
@@ -222,10 +136,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if won {
 					n := len(m.game.Guesses)
 					emoji := []string{"", "🏆", "🎯", "🔥", "👍", "😅", "😰"}
-					m.message = fmt.Sprintf("%s  Solved in %d/6!  Press Enter or Esc to exit", emoji[n], n)
+					m.message = fmt.Sprintf("%s Solved in %d/6!", emoji[n], n)
 					m.msgType = 1
 				} else {
-					m.message = fmt.Sprintf("The word was: %s  —  Press Enter or Esc to exit", strings.ToUpper(m.game.Target))
+					m.message = fmt.Sprintf("The word was: %s", strings.ToUpper(m.game.Target))
 					m.msgType = 2
 				}
 			}
@@ -250,133 +164,155 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // ── View ───────────────────────────────────────────────────────────────
 
 func (m Model) View() string {
-	var sections []string
-
-	// Title
-	langLabel := "English"
+	langLabel := "EN"
 	if m.config.Language == words.German {
-		langLabel = "Deutsch"
+		langLabel = "DE"
 	}
 	mode := "Daily"
 	if m.config.Random {
 		mode = "Random"
 	}
 
-	sections = append(sections,
-		titleStyle.Render("╔══════════════════════════════════╗"))
-	sections = append(sections,
-		titleStyle.Render("║        W  O  R  D  L  E         ║"))
-	sections = append(sections,
-		titleStyle.Render(fmt.Sprintf("║      %s · %-7s           ║", langLabel, mode)))
-	sections = append(sections,
-		titleStyle.Render("╚══════════════════════════════════╝"))
-	sections = append(sections, "")
+	// All sections as simple strings, centered later
+	var lines []string
 
-	// Attempt counter
+	// Title
+	lines = append(lines, "")
+	lines = append(lines,
+		lipgloss.NewStyle().Bold(true).Foreground(colorWhite).Render(
+			"W  O  R  D  L  E"))
+	lines = append(lines,
+		lipgloss.NewStyle().Foreground(colorAccent).Render(
+			fmt.Sprintf("%s · %s", langLabel, mode)))
+	lines = append(lines, "")
+
+	// Attempt info
 	if m.game.State == game.StatePlaying {
-		sections = append(sections,
-			subtitleStyle.Render(fmt.Sprintf("Attempt %d / %d", len(m.game.Guesses)+1, m.game.MaxGuesses)))
+		lines = append(lines,
+			lipgloss.NewStyle().Foreground(colorDim).Render(
+				fmt.Sprintf("Attempt %d of %d", len(m.game.Guesses)+1, m.game.MaxGuesses)))
 	} else {
-		sections = append(sections,
-			subtitleStyle.Render(fmt.Sprintf("Finished — %d / %d", len(m.game.Guesses), m.game.MaxGuesses)))
+		lines = append(lines,
+			lipgloss.NewStyle().Foreground(colorDim).Render(
+				fmt.Sprintf("Finished — %d of %d", len(m.game.Guesses), m.game.MaxGuesses)))
 	}
-	sections = append(sections, "")
+	lines = append(lines, "")
 
-	// Game Grid
-	sections = append(sections, m.renderGrid())
-	sections = append(sections, "")
+	// Grid
+	for i := 0; i < m.game.MaxGuesses; i++ {
+		lines = append(lines, m.renderRow(i))
+	}
+	lines = append(lines, "")
 
 	// Message
 	if m.message != "" {
+		style := lipgloss.NewStyle().Bold(true)
 		switch m.msgType {
 		case 1:
-			sections = append(sections, winMsgStyle.Render(m.message))
+			style = style.Foreground(colorGreen)
 		case 2:
-			sections = append(sections, loseMsgStyle.Render(m.message))
+			style = style.Foreground(lipgloss.Color("#e74c3c"))
 		default:
-			sections = append(sections, messageStyle.Render(m.message))
+			style = style.Foreground(colorYellow)
 		}
+		lines = append(lines, style.Render(m.message))
 	}
-	sections = append(sections, "")
+	lines = append(lines, "")
 
 	// Keyboard
-	sections = append(sections, m.renderKeyboard())
-	sections = append(sections, "")
+	kbLines := m.renderKeyboard()
+	lines = append(lines, kbLines...)
+	lines = append(lines, "")
 
-	// Stats
-	sections = append(sections, m.renderStats())
-	sections = append(sections, "")
+	// Stats bar
+	lines = append(lines, m.renderStatsBar())
+	lines = append(lines, "")
+
+	// Distribution (compact, single line per guess)
+	lines = append(lines, m.renderDistribution()...)
+	lines = append(lines, "")
 
 	// Help
-	sections = append(sections,
-		helpStyle.Render("Type a word · Enter to submit · Backspace to delete · Esc to quit"))
+	if m.game.State != game.StatePlaying {
+		lines = append(lines,
+			lipgloss.NewStyle().Foreground(colorDim).Render("Press Enter or Esc to exit"))
+	} else {
+		lines = append(lines,
+			lipgloss.NewStyle().Foreground(colorDim).Render("Type · Enter · Backspace · Esc"))
+	}
 
-	content := lipgloss.JoinVertical(lipgloss.Center, sections...)
+	// Center each line
+	content := lipgloss.JoinVertical(lipgloss.Center, lines...)
 
-	// Center the whole thing on screen
 	return lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		content,
 		lipgloss.WithWhitespaceBackground(colorBg))
 }
 
-// ── Grid ───────────────────────────────────────────────────────────────
+// ── Render: Single Grid Row ────────────────────────────────────────────
 
-func (m Model) renderGrid() string {
-	var rows []string
+func (m Model) renderRow(i int) string {
+	// Each tile: [ X ] with background color, fixed 5 chars wide
+	tileWidth := 5
+	gap := " "
 
-	for i := 0; i < m.game.MaxGuesses; i++ {
-		var cells []string
+	var tiles []string
 
-		if i < len(m.game.Hints) {
-			// Completed guess
-			for _, h := range m.game.Hints[i] {
-				bg := colorGray
-				switch h.Status {
-				case game.StatusCorrect:
-					bg = colorGreen
-				case game.StatusPresent:
-					bg = colorYellow
-				}
-				cell := makeTileStyle(bg).Render(fmt.Sprintf(" %s ", strings.ToUpper(string(h.Letter))))
-				cells = append(cells, cell)
+	if i < len(m.game.Hints) {
+		for _, h := range m.game.Hints[i] {
+			bg := colorGray
+			switch h.Status {
+			case game.StatusCorrect:
+				bg = colorGreen
+			case game.StatusPresent:
+				bg = colorYellow
 			}
-		} else if i == len(m.game.Guesses) && m.game.State == game.StatePlaying {
-			// Current input
-			inputRunes := []rune(string(m.input))
-			for j := 0; j < 5; j++ {
-				if j < len(inputRunes) {
-					cell := makeInputTile().Render(fmt.Sprintf(" %s ", strings.ToUpper(string(inputRunes[j]))))
-					cells = append(cells, cell)
-				} else {
-					cell := makeEmptyTile().Render("   ")
-					cells = append(cells, cell)
-				}
-			}
-		} else {
-			// Empty row
-			for j := 0; j < 5; j++ {
-				cell := makeEmptyTile().Render("   ")
-				cells = append(cells, cell)
-			}
+			t := lipgloss.NewStyle().
+				Background(bg).Foreground(colorWhite).Bold(true).
+				Width(tileWidth).Align(lipgloss.Center).
+				Render(strings.ToUpper(string(h.Letter)))
+			tiles = append(tiles, t)
 		}
-
-		row := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
-		rows = append(rows, row)
+	} else if i == len(m.game.Guesses) && m.game.State == game.StatePlaying {
+		inputRunes := []rune(string(m.input))
+		for j := 0; j < 5; j++ {
+			var t string
+			if j < len(inputRunes) {
+				t = lipgloss.NewStyle().
+					Background(colorDark).Foreground(colorWhite).Bold(true).
+					Width(tileWidth).Align(lipgloss.Center).
+					Render(strings.ToUpper(string(inputRunes[j])))
+			} else {
+				t = lipgloss.NewStyle().
+					Background(colorDark).Foreground(colorDim).
+					Width(tileWidth).Align(lipgloss.Center).
+					Render("·")
+			}
+			tiles = append(tiles, t)
+		}
+	} else {
+		for j := 0; j < 5; j++ {
+			t := lipgloss.NewStyle().
+				Background(colorDark).Foreground(colorDim).
+				Width(tileWidth).Align(lipgloss.Center).
+				Render("·")
+			tiles = append(tiles, t)
+		}
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, rows...)
+	return strings.Join(tiles, gap)
 }
 
-// ── Keyboard ───────────────────────────────────────────────────────────
+// ── Render: Keyboard ───────────────────────────────────────────────────
 
-func (m Model) renderKeyboard() string {
+func (m Model) renderKeyboard() []string {
 	rows := []string{"qwertyuiop", "asdfghjkl", "zxcvbnm"}
 	if m.config.Language == words.German {
 		rows = []string{"qwertzuiopü", "asdfghjklöä", "yxcvbnm"}
 	}
 
-	var kbRows []string
+	var result []string
 	for _, row := range rows {
 		var keys []string
 		for _, r := range row {
@@ -391,44 +327,39 @@ func (m Model) renderKeyboard() string {
 					bg = colorDark
 				}
 			}
-			key := makeKeyStyle(bg).Render(fmt.Sprintf(" %s ", strings.ToUpper(string(r))))
-			keys = append(keys, key)
+			k := lipgloss.NewStyle().
+				Background(bg).Foreground(colorWhite).Bold(true).
+				Width(3).Align(lipgloss.Center).
+				Render(strings.ToUpper(string(r)))
+			keys = append(keys, k)
 		}
-		kbRows = append(kbRows, lipgloss.JoinHorizontal(lipgloss.Top, keys...))
+		result = append(result, strings.Join(keys, " "))
 	}
-
-	return lipgloss.JoinVertical(lipgloss.Center, kbRows...)
+	return result
 }
 
-// ── Stats ──────────────────────────────────────────────────────────────
+// ── Render: Stats Bar ──────────────────────────────────────────────────
 
-func (m Model) renderStats() string {
+func (m Model) renderStatsBar() string {
 	s := m.stats
+	num := lipgloss.NewStyle().Bold(true).Foreground(colorWhite)
+	lbl := lipgloss.NewStyle().Foreground(colorAccent)
 
-	// Stat numbers row
-	items := []string{
-		lipgloss.JoinVertical(lipgloss.Center,
-			statNumStyle.Render(fmt.Sprintf("%d", s.Played)),
-			statLblStyle.Render("Played")),
-		lipgloss.JoinVertical(lipgloss.Center,
-			statNumStyle.Render(fmt.Sprintf("%.0f%%", s.WinRate())),
-			statLblStyle.Render("Win %")),
-		lipgloss.JoinVertical(lipgloss.Center,
-			statNumStyle.Render(fmt.Sprintf("%d", s.CurrentStreak)),
-			statLblStyle.Render("Streak")),
-		lipgloss.JoinVertical(lipgloss.Center,
-			statNumStyle.Render(fmt.Sprintf("%d", s.MaxStreak)),
-			statLblStyle.Render("Best")),
+	parts := []string{
+		num.Render(fmt.Sprintf("%d", s.Played)) + lbl.Render(" played"),
+		num.Render(fmt.Sprintf("%.0f%%", s.WinRate())) + lbl.Render(" win"),
+		num.Render(fmt.Sprintf("%d", s.CurrentStreak)) + lbl.Render(" streak"),
+		num.Render(fmt.Sprintf("%d", s.MaxStreak)) + lbl.Render(" best"),
 	}
-	statsRow := lipgloss.JoinHorizontal(lipgloss.Top, items...)
 
-	// Distribution
-	var distLines []string
-	distLines = append(distLines, "")
-	distLines = append(distLines,
-		lipgloss.NewStyle().Bold(true).Foreground(colorWhite).Render("GUESS DISTRIBUTION"))
-	distLines = append(distLines, "")
+	sep := lipgloss.NewStyle().Foreground(colorDim).Render("  │  ")
+	return strings.Join(parts, sep)
+}
 
+// ── Render: Distribution ───────────────────────────────────────────────
+
+func (m Model) renderDistribution() []string {
+	s := m.stats
 	maxCount := 0
 	for i := 1; i <= 6; i++ {
 		if c := s.Distribution[i]; c > maxCount {
@@ -436,10 +367,12 @@ func (m Model) renderStats() string {
 		}
 	}
 
-	maxBarWidth := 25
+	maxBarWidth := 20
+	var lines []string
+
 	for i := 1; i <= 6; i++ {
 		count := s.Distribution[i]
-		barWidth := 1
+		barWidth := 0
 		if maxCount > 0 && count > 0 {
 			barWidth = (count * maxBarWidth) / maxCount
 			if barWidth < 1 {
@@ -447,33 +380,26 @@ func (m Model) renderStats() string {
 			}
 		}
 
-		label := fmt.Sprintf(" %d ", i)
 		isHighlight := m.game.State == game.StateWon && len(m.game.Guesses) == i
 
-		barText := fmt.Sprintf(" %d ", count)
+		label := lipgloss.NewStyle().Foreground(colorWhite).Width(2).Align(lipgloss.Right).
+			Render(fmt.Sprintf("%d", i))
+
+		countStr := fmt.Sprintf(" %d ", count)
 		var bar string
 		if isHighlight {
-			bar = lipgloss.NewStyle().
-				Background(colorGreen).Foreground(colorWhite).Bold(true).
-				Width(barWidth + len(barText)).
-				Render(barText)
+			bar = lipgloss.NewStyle().Background(colorGreen).Foreground(colorWhite).Bold(true).
+				Render(countStr + strings.Repeat("▓", barWidth))
 		} else if count > 0 {
-			bar = lipgloss.NewStyle().
-				Background(colorGray).Foreground(colorWhite).
-				Width(barWidth + len(barText)).
-				Render(barText)
+			bar = lipgloss.NewStyle().Background(colorGray).Foreground(colorWhite).
+				Render(countStr + strings.Repeat("▓", barWidth))
 		} else {
-			bar = lipgloss.NewStyle().
-				Background(colorGray).Foreground(colorWhite).
-				Render(barText)
+			bar = lipgloss.NewStyle().Background(colorGray).Foreground(colorWhite).
+				Render(countStr)
 		}
 
-		distLines = append(distLines,
-			lipgloss.NewStyle().Foreground(colorWhite).Render(label)+" "+bar)
+		lines = append(lines, label+" "+bar)
 	}
 
-	dist := lipgloss.JoinVertical(lipgloss.Left, distLines...)
-	inner := lipgloss.JoinVertical(lipgloss.Center, statsRow, dist)
-
-	return statsBoxStyle.Render(inner)
+	return lines
 }
